@@ -3,35 +3,34 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-// Struct for the multiple arguments
-struct argStruct
-{
-   int arg1;
-   int arg2;
-};
+// Create two mutex locks
+pthread_mutex_t resource1;
+pthread_mutex_t resource2;
 
 // The functions used for the seperate threads
-void *threadOne(void *arguments)
+
+// This function is for thread 1
+void *threadOne(void *args)
 {
-    struct argStruct *args = arguments;
-    int num1 = args -> arg1;
-    int num2 = args -> arg2;
+    pthread_mutex_lock(&resource1);
+    pthread_mutex_lock(&resource2);
     printf("Thread 1 has both resources, and is running!\n");
-    int sum = num1 + num2;
-    int sum2 = (args -> arg1) + (args -> arg2);
+    pthread_mutex_unlock(&resource2);
+    pthread_mutex_unlock(&resource1);
+    printf("Thread 1 is done!\n");
     pthread_exit(0);
     return NULL;
 }
 
-void *threadTwo(void *arguments)
+// This function is for thread 2
+void *threadTwo(void *args)
 {
-    struct argStruct *args = arguments;
-    int num2 = args -> arg2;
-    int num1 = args -> arg1;
+    pthread_mutex_lock(&resource2);
+    pthread_mutex_lock(&resource1);
     printf("Thread 2 has both resources, and is running!\n");
-    int product = num2 * num1;
-    int product2 = (args -> arg2) + (args -> arg1);
-
+    pthread_mutex_unlock(&resource1);
+    pthread_mutex_unlock(&resource2);
+    printf("Thread 2 is done!\n");
     pthread_exit(0);
     return NULL;
 }
@@ -39,9 +38,6 @@ void *threadTwo(void *arguments)
 int main()
 {
     int n = 0;
-    struct argStruct args;
-    args.arg1 = 3;
-    args.arg2 = 4;
 
     // Create the ids for each of the threads
     pthread_t tidOne;
@@ -51,18 +47,12 @@ int main()
     // Run a loop to try to get a deadlock
     while (n < 1000)
     {
-        int thread1 =  pthread_create(&tidOne, NULL, &threadOne, (void *)&args);
-        int thread2 = pthread_create(&tidTwo, NULL, &threadTwo, (void *)&args);
+        pthread_create(&tidOne, NULL, &threadOne, NULL);
+        pthread_create(&tidTwo, NULL, &threadTwo, NULL);
 
-        if(thread1)
-        {
-            printf("Thread 1 is done!\n");
-        }
-
-        if(thread2)
-        {
-            printf("Thread 2 is done!\n");
-        }
         n++;
     }
+
+    pthread_join(tidOne, NULL);
+    pthread_join(tidTwo, NULL);
 }
